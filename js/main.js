@@ -124,7 +124,9 @@ initMap = () => {
 updateRestaurants = () => {
   const cSelect = document.getElementById('cuisines-select');
   const nSelect = document.getElementById('neighborhoods-select');
-
+  nSelect.setAttribute('aria-selected', nSelect.value)
+  cSelect.setAttribute('aria-selected', cSelect.value)
+  
   const cIndex = cSelect.selectedIndex;
   const nIndex = nSelect.selectedIndex;
 

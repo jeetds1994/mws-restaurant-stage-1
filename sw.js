@@ -1,14 +1,22 @@
+
 addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open('restaurant-app').then(function (cache) {
-      return cache
+    caches.open('static').then(function (cache) {
+      cache.addAll([
+        '/',
+        '/index.html',
+        '/restaurant.html',
+        '/scripts/main.js',
+        '/scripts/restaurant_info.js',
+        '/scripts/utils.js'
+      ])
     })
   )
-}
+})
 
 addEventListener('activate', function (event) {
   event.waitUntil(
-    catch.delete('restaurant-app')
+    caches.delete('static')
   )
 })
 
