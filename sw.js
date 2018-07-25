@@ -2,13 +2,12 @@
 addEventListener('install', function(event) {
   event.waitUntil(
     caches.open('static').then(function (cache) {
-      cache.addAll([
+      return cache.addAll([
         '/',
         '/index.html',
         '/restaurant.html',
-        '/scripts/main.js',
-        '/scripts/restaurant_info.js',
-        '/scripts/utils.js'
+        '/js/main.js',
+        '/js/restaurant_info.js'
       ])
     })
   )
@@ -26,7 +25,7 @@ addEventListener('fetch', function(event) {
         if (response) {
           return response
         } else {
-          return cache.put(fetch(event.request))
+          return fetch(event.request)
         }
       }
     )
