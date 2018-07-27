@@ -1,5 +1,5 @@
 
-addEventListener('install', function(event) {
+self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open('static').then(function (cache) {
       return cache.addAll([
@@ -13,21 +13,25 @@ addEventListener('install', function(event) {
   )
 })
 
-addEventListener('activate', function (event) {
+self.addEventListener('activate', function (event) {
   event.waitUntil(
-    caches.delete('static')
+    caches.open('static')
   )
 })
 
-addEventListener('fetch', function(event) {
+self.addEventListener('fetch', function (event) {
   event.respondWith(
-    caches.match(event.request).then(function(response) {
+    caches.open('static').then(function (cache) {
+      return cache.match(event.request).then(function (response) {
         if (response) {
           return response
         } else {
-          return fetch(event.request)
+          fetch(event.request).then(response => {
+            cache.put(event.request, response.clone())
+            return response
+          })
         }
-      }
-    )
+      })
+    })
   )
 })
