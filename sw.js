@@ -1,7 +1,9 @@
+var cacheName = "restaurant-cache"
+
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open('static').then(function (cache) {
+    caches.open(cacheName).then(function (cache) {
       return cache.addAll([
         '/',
         '/index.html',
@@ -15,13 +17,13 @@ self.addEventListener('install', function(event) {
 
 self.addEventListener('activate', function (event) {
   event.waitUntil(
-    caches.open('static')
+    caches.delete(cacheName)
   )
 })
 
 self.addEventListener('fetch', function (event) {
   event.respondWith(
-    caches.open('static').then(function (cache) {
+    return caches.open(cacheName).then(function (cache) {
       return cache.match(event.request).then(function (response) {
         if (response) {
           return response

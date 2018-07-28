@@ -277,6 +277,10 @@ nav h1 a {
   color: #666;
 }
 
+.restaurant-footer {
+	width: 100% !important;
+}
+
 @media screen and (max-width: 600px) {
 
     #maincontent {
@@ -291,8 +295,12 @@ nav h1 a {
 			z-index: 5;
 		}
 
-		#restaurant-container, #reviews-container, #footer, #breadcrumb {
+		#restaurant-container, #reviews-container, #breadcrumb {
 			width: 100%  !important;
+		}
+
+		.filter-options {
+			height: 135px;
 		}
 
 		#reviews-container {
@@ -302,12 +310,13 @@ nav h1 a {
 		}
 }
 
-@media screen and (min-width: 800px) {
-	#reviews-list {
+@media screen and (max-width: 800px) {
+	#reviews-list li {
 		width: 70% !important;
 	}
-
-	footer {
-		width: 100% !important;
-	}
 }
+
+@media screen and (min-width: 800px) {
+	#reviews-list li {
+		width: 70% !important;
+	}
