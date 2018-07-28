@@ -295,7 +295,7 @@ nav h1 a {
 			z-index: 5;
 		}
 
-		#restaurant-container, #reviews-container, #breadcrumb {
+		#restaurant-container, #reviews-container, #breadcrumb, #footer {
 			width: 100%  !important;
 		}
 
@@ -308,6 +308,10 @@ nav h1 a {
 			flex-wrap: wrap;
 			width: 40%;
 		}
+
+		#footer {
+			position: relative !important;
+		}
 }
 
 @media screen and (max-width: 800px) {
@@ -315,8 +319,3 @@ nav h1 a {
 		width: 70% !important;
 	}
 }
-
-@media screen and (min-width: 800px) {
-	#reviews-list li {
-		width: 70% !important;
-	}

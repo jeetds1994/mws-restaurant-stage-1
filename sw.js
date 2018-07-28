@@ -28,7 +28,7 @@ self.addEventListener('fetch', function (event) {
         if (response) {
           return response
         } else {
-          fetch(event.request).then(response => {
+          return fetch(event.request).then(response => {
             cache.put(event.request, response.clone())
             return response
           })
