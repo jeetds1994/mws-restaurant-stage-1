@@ -1,3 +1,5 @@
+import idb from 'idb';
+
 /**
  * Common database helper functions.
  */
@@ -12,24 +14,51 @@ class DBHelper {
     return `http://localhost:${port}/restaurants`;
   }
 
+  static openDB(name) {
+    return idb.open(name ,1 , function (updated) {
+      updated.createObjectStore(name, {key: 'id'})
+    })
+  }
+
+
+
+  static getCachedMessagesByName(name){
+    return DBHelper.openDB(name).then(function(db){
+      if (db) {
+        var transaction = db.transaction(name);
+        var store = transaction.objectStore(name);
+        return store.getAll()
+      }}
+    );
+  }
+
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
+    DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
+      if (data) {
+        return callback(null, cachedData)
+      }
+    })
     let xhr = new XMLHttpRequest();
     xhr.open('GET', DBHelper.DATABASE_URL);
     xhr.onload = () => {
       if (xhr.status === 200) { // Got a success response from server!
         const restaurantJSON = JSON.parse(xhr.responseText);
+        DBHelper.openDB('restaurants').then(function(db) {
+          let transaction = db.transaction('restaurants', 'readwrite')
+          let store = transaction.objectStore('restaurants')
+          restaurantJSON.forEach(restaurant => store.put(restaurant))
+        })
         callback(null, restaurantJSON);
       } else { // Oops!. Got an error from server.
         const error = (`Request failed. Returned status of ${xhr.status}`);
         callback(error, null);
       }
-    };
+  };
     xhr.send();
   }
-
   /**
    * Fetch a restaurant by its ID.
    */
@@ -177,3 +206,5 @@ class DBHelper {
   } */
 
 }
+
+module.exports = DBHelper
