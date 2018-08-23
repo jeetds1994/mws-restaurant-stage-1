@@ -7,8 +7,9 @@ self.addEventListener('install', function(event) {
         '/',
         '/index.html',
         '/restaurant.html',
-        '/js/main.js',
-        '/js/restaurant_info.js'
+        '/build/index_bundle.js',
+        '/build/restaurant_bundle.js',
+        '/js/dbhelper.js'
       ])
     })
   )

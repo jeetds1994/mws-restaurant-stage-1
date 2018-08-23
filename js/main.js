@@ -54,6 +54,7 @@ var fillNeighborhoodsHTML = (neighborhoods = self.neighborhoods) => {
     const option = document.createElement('option');
     option.innerHTML = neighborhood;
     option.value = neighborhood;
+    option.role = "option"
     select.append(option);
   });
 }
@@ -82,6 +83,7 @@ var fillCuisinesHTML = (cuisines = self.cuisines) => {
     const option = document.createElement('option');
     option.innerHTML = cuisine;
     option.value = cuisine;
+    option.role = "option"
     select.append(option);
   });
 }
@@ -108,9 +110,6 @@ window.initMap = () => {
 var updateRestaurants = () => {
   const cSelect = document.getElementById('cuisines-select');
   const nSelect = document.getElementById('neighborhoods-select');
-  nSelect.setAttribute('aria-selected', nSelect.value)
-  cSelect.setAttribute('aria-selected', cSelect.value)
-
   const cIndex = cSelect.selectedIndex;
   const nIndex = nSelect.selectedIndex;
 
@@ -118,7 +117,7 @@ var updateRestaurants = () => {
   const neighborhood = nSelect[nIndex].value;
 
   DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
-    if (error) { // Got an error!
+    if (error) {
       console.error(error);
     } else {
       resetRestaurants(restaurants);
@@ -135,10 +134,11 @@ var resetRestaurants = (restaurants) => {
   self.restaurants = [];
   const ul = document.getElementById('restaurants-list');
   ul.innerHTML = '';
+  ul.role = 'listitem'
 
   // Remove all map markers
   if (self.markers) {
-    self.markers.forEach(marker => marker.remove());
+    self.markers.forEach(marker => marker.setMap(null));
   }
   self.markers = [];
   self.restaurants = restaurants;
@@ -193,22 +193,12 @@ var createRestaurantHTML = (restaurant) => {
 var addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     // Add marker to the map
-    const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.newMap);
-    marker.on("click", onClick);
-    function onClick() {
-      window.location.href = marker.options.url;
-    }
-    self.markers.push(marker);
-  });
-
-}
-/* addMarkersToMap = (restaurants = self.restaurants) => {
-  restaurants.forEach(restaurant => {
-    // Add marker to the map
     const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
     google.maps.event.addListener(marker, 'click', () => {
       window.location.href = marker.url
     });
+    marker.alt = restaurant.name
+    marker.role = "prestation"
     self.markers.push(marker);
   });
-} */
+}

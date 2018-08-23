@@ -3,9 +3,30 @@ import DBHelper from './dbhelper';
 let restaurant;
 var newMap;
 
+document.addEventListener('DOMContentLoaded', (event) => {
+  registerServiceWorker()
+})
+
+
+var registerServiceWorker = () => {
+  if (!navigator.serviceWorker) {
+    console.log('navigator service worker not found');
+    return
+  } else {
+    console.log('found service worker in naviagtion');
+  }
+
+  navigator.serviceWorker.register('/sw.js').then(function() {
+    console.log('registered service worker')
+  }).catch(function() {
+    console.error('failed to register service worker')
+  })
+}
+
 /**
  * Initialize map as soon as the page is loaded.
  */
+
 /**
  * Initialize leaflet map
  */

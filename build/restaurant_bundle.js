@@ -23,7 +23,7 @@ var DBHelper = function () {
     key: 'openDB',
     value: function openDB(name) {
       return _idb2.default.open(name, 1, function (updated) {
-        updated.createObjectStore(name, { key: 'id' });
+        updated.createObjectStore(name, { keyPath: 'id' });
       });
     }
   }, {
@@ -46,7 +46,7 @@ var DBHelper = function () {
     key: 'fetchRestaurants',
     value: function fetchRestaurants(callback) {
       DBHelper.getCachedMessagesByName('restaurants').then(function (cachedData) {
-        if (data) {
+        if (cachedData.length > 0) {
           return callback(null, cachedData);
         }
       });
@@ -247,25 +247,14 @@ var DBHelper = function () {
   }, {
     key: 'mapMarkerForRestaurant',
     value: function mapMarkerForRestaurant(restaurant, map) {
-      // https://leafletjs.com/reference-1.3.0.html#marker
-      var marker = new L.marker([restaurant.latlng.lat, restaurant.latlng.lng], { title: restaurant.name,
-        alt: restaurant.name,
-        url: DBHelper.urlForRestaurant(restaurant)
-      });
-      marker.addTo(newMap);
-      return marker;
-    }
-    /* static mapMarkerForRestaurant(restaurant, map) {
-      const marker = new google.maps.Marker({
+      var marker = new google.maps.Marker({
         position: restaurant.latlng,
         title: restaurant.name,
         url: DBHelper.urlForRestaurant(restaurant),
         map: map,
-        animation: google.maps.Animation.DROP}
-      );
+        animation: google.maps.Animation.DROP });
       return marker;
-    } */
-
+    }
   }, {
     key: 'DATABASE_URL',
 
@@ -297,9 +286,29 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var restaurant = void 0;
 var newMap;
 
+document.addEventListener('DOMContentLoaded', function (event) {
+  registerServiceWorker();
+});
+
+var registerServiceWorker = function registerServiceWorker() {
+  if (!navigator.serviceWorker) {
+    console.log('navigator service worker not found');
+    return;
+  } else {
+    console.log('found service worker in naviagtion');
+  }
+
+  navigator.serviceWorker.register('/sw.js').then(function () {
+    console.log('registered service worker');
+  }).catch(function () {
+    console.error('failed to register service worker');
+  });
+};
+
 /**
  * Initialize map as soon as the page is loaded.
  */
+
 /**
  * Initialize leaflet map
  */
@@ -796,7 +805,7 @@ var cacheName = "restaurant-cache";
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(cacheName).then(function (cache) {
-    return cache.addAll(['/', '/index.html', '/restaurant.html', '/js/main.js', '/js/restaurant_info.js']);
+    return cache.addAll(['/', '/index.html', '/restaurant.html', '/build/index_bundle.js', '/build/restaurant_bundle.js', '/js/dbhelper.js']);
   }));
 });
 

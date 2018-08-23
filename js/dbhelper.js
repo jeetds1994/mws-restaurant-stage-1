@@ -16,7 +16,7 @@ class DBHelper {
 
   static openDB(name) {
     return idb.open(name ,1 , function (updated) {
-      updated.createObjectStore(name, {key: 'id'})
+      updated.createObjectStore(name, {keyPath: 'id'})
     })
   }
 
@@ -37,7 +37,7 @@ class DBHelper {
    */
   static fetchRestaurants(callback) {
     DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
-      if (data) {
+      if (cachedData.length > 0) {
         return callback(null, cachedData)
       }
     })
@@ -184,18 +184,8 @@ class DBHelper {
   /**
    * Map marker for a restaurant.
    */
-   static mapMarkerForRestaurant(restaurant, map) {
-    // https://leafletjs.com/reference-1.3.0.html#marker
-    const marker = new L.marker([restaurant.latlng.lat, restaurant.latlng.lng],
-      {title: restaurant.name,
-      alt: restaurant.name,
-      url: DBHelper.urlForRestaurant(restaurant)
-      })
-      marker.addTo(newMap);
-    return marker;
-  }
-  /* static mapMarkerForRestaurant(restaurant, map) {
-    const marker = new google.maps.Marker({
+ static mapMarkerForRestaurant(restaurant, map) {
+   const marker = new google.maps.Marker({
       position: restaurant.latlng,
       title: restaurant.name,
       url: DBHelper.urlForRestaurant(restaurant),
@@ -203,8 +193,7 @@ class DBHelper {
       animation: google.maps.Animation.DROP}
     );
     return marker;
-  } */
-
+  }
 }
 
 module.exports = DBHelper

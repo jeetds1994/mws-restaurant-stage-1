@@ -23,7 +23,7 @@ var DBHelper = function () {
     key: 'openDB',
     value: function openDB(name) {
       return _idb2.default.open(name, 1, function (updated) {
-        updated.createObjectStore(name, { key: 'id' });
+        updated.createObjectStore(name, { keyPath: 'id' });
       });
     }
   }, {
@@ -46,7 +46,7 @@ var DBHelper = function () {
     key: 'fetchRestaurants',
     value: function fetchRestaurants(callback) {
       DBHelper.getCachedMessagesByName('restaurants').then(function (cachedData) {
-        if (data) {
+        if (cachedData.length > 0) {
           return callback(null, cachedData);
         }
       });
@@ -247,25 +247,14 @@ var DBHelper = function () {
   }, {
     key: 'mapMarkerForRestaurant',
     value: function mapMarkerForRestaurant(restaurant, map) {
-      // https://leafletjs.com/reference-1.3.0.html#marker
-      var marker = new L.marker([restaurant.latlng.lat, restaurant.latlng.lng], { title: restaurant.name,
-        alt: restaurant.name,
-        url: DBHelper.urlForRestaurant(restaurant)
-      });
-      marker.addTo(newMap);
-      return marker;
-    }
-    /* static mapMarkerForRestaurant(restaurant, map) {
-      const marker = new google.maps.Marker({
+      var marker = new google.maps.Marker({
         position: restaurant.latlng,
         title: restaurant.name,
         url: DBHelper.urlForRestaurant(restaurant),
         map: map,
-        animation: google.maps.Animation.DROP}
-      );
+        animation: google.maps.Animation.DROP });
       return marker;
-    } */
-
+    }
   }, {
     key: 'DATABASE_URL',
 
@@ -350,6 +339,7 @@ var fillNeighborhoodsHTML = function fillNeighborhoodsHTML() {
     var option = document.createElement('option');
     option.innerHTML = neighborhood;
     option.value = neighborhood;
+    option.role = "option";
     select.append(option);
   });
 };
@@ -381,6 +371,7 @@ var fillCuisinesHTML = function fillCuisinesHTML() {
     var option = document.createElement('option');
     option.innerHTML = cuisine;
     option.value = cuisine;
+    option.role = "option";
     select.append(option);
   });
 };
@@ -407,9 +398,6 @@ window.initMap = function () {
 var updateRestaurants = function updateRestaurants() {
   var cSelect = document.getElementById('cuisines-select');
   var nSelect = document.getElementById('neighborhoods-select');
-  nSelect.setAttribute('aria-selected', nSelect.value);
-  cSelect.setAttribute('aria-selected', cSelect.value);
-
   var cIndex = cSelect.selectedIndex;
   var nIndex = nSelect.selectedIndex;
 
@@ -418,7 +406,6 @@ var updateRestaurants = function updateRestaurants() {
 
   _dbhelper2.default.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, function (error, restaurants) {
     if (error) {
-      // Got an error!
       console.error(error);
     } else {
       resetRestaurants(restaurants);
@@ -435,11 +422,12 @@ var resetRestaurants = function resetRestaurants(restaurants) {
   self.restaurants = [];
   var ul = document.getElementById('restaurants-list');
   ul.innerHTML = '';
+  ul.role = 'listitem';
 
   // Remove all map markers
   if (self.markers) {
     self.markers.forEach(function (marker) {
-      return marker.remove();
+      return marker.setMap(null);
     });
   }
   self.markers = [];
@@ -499,24 +487,15 @@ var addMarkersToMap = function addMarkersToMap() {
 
   restaurants.forEach(function (restaurant) {
     // Add marker to the map
-    var marker = _dbhelper2.default.mapMarkerForRestaurant(restaurant, self.newMap);
-    marker.on("click", onClick);
-    function onClick() {
-      window.location.href = marker.options.url;
-    }
+    var marker = _dbhelper2.default.mapMarkerForRestaurant(restaurant, self.map);
+    google.maps.event.addListener(marker, 'click', function () {
+      window.location.href = marker.url;
+    });
+    marker.alt = restaurant.name;
+    marker.role = "prestation";
     self.markers.push(marker);
   });
 };
-/* addMarkersToMap = (restaurants = self.restaurants) => {
-  restaurants.forEach(restaurant => {
-    // Add marker to the map
-    const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
-    google.maps.event.addListener(marker, 'click', () => {
-      window.location.href = marker.url
-    });
-    self.markers.push(marker);
-  });
-} */
 
 },{"./dbhelper":1}],3:[function(require,module,exports){
 'use strict';
@@ -843,7 +822,7 @@ var cacheName = "restaurant-cache";
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(cacheName).then(function (cache) {
-    return cache.addAll(['/', '/index.html', '/restaurant.html', '/js/main.js', '/js/restaurant_info.js']);
+    return cache.addAll(['/', '/index.html', '/restaurant.html', '/build/index_bundle.js', '/build/restaurant_bundle.js', '/js/dbhelper.js']);
   }));
 });
 
