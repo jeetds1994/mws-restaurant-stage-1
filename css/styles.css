@@ -286,6 +286,10 @@ nav h1 a {
 	background-color: black;
 }
 
+.add-review-form {
+	height: 300px;
+}
+
 @media screen and (max-width: 600px) {
 
     #maincontent {

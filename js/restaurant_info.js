@@ -65,12 +65,18 @@ var fetchRestaurantFromURL = (callback) => {
       if (!restaurant) {
         console.error(error);
         return;
+      } else {
+        DBHelper.fetchRestaurantReviewsById(restaurant.id).then(reviews => {
+          restaurant.reviews = reviews
+          fillRestaurantHTML();
+        })
       }
-      fillRestaurantHTML();
       callback(null, restaurant)
     });
   }
 }
+
+
 
 /**
  * Create restaurant HTML and add it to the webpage
@@ -96,6 +102,30 @@ var fillRestaurantHTML = (restaurant = self.restaurant) => {
   }
   // fill reviews
   fillReviewsHTML();
+  addReviewEvent()
+}
+
+var addReviewEvent = (restaurant = self.restaurant) => {
+  document.querySelector('form').addEventListener('submit', function (e) {
+    e.preventDefault()
+    const name = document.querySelector(".add-review-form #name").value
+    const rating = document.querySelector(".add-review-form #rating").value
+    const comments = document.querySelector(".add-review-form #comments").value
+    let params = `?restaurant_id=${restaurant.id}&name=${name}&rating=${rating}&comments=${comments}`
+    fetch('http://localhost:1337/reviews/' + params, {
+      method: 'POST',
+    }).then(resp => {
+      DBHelper.fetchRestaurantReviewsById(restaurant.id).then(reviews => {
+        let lastReview = reviews[reviews.length - 1]
+        fillRestaurantReview(lastReview)
+      })
+    })
+  })
+}
+
+var fillRestaurantReview = (review) => {
+  const ul = document.getElementById('reviews-list');
+  ul.appendChild(createReviewHTML(review));
 }
 
 /**
@@ -124,9 +154,11 @@ var fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours)
 var fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   const container = document.getElementById('reviews-container');
   const title = document.createElement('h2');
-  title.innerHTML = 'Reviews';
-  container.appendChild(title);
-
+  if (!document.querySelector("#reviews-title")) {
+    title.innerHTML = 'Reviews';
+    title.id = "reviews-title";
+    container.appendChild(title);
+  }
   if (!reviews) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';

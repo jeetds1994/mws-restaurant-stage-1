@@ -5,13 +5,16 @@ import idb from 'idb';
  */
 class DBHelper {
 
+  static port() {
+    return 1337
+  }
+
   /**
    * Database URL.
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${DBHelper.port()}/restaurants`;
   }
 
   static openDB(name) {
@@ -129,6 +132,12 @@ class DBHelper {
         callback(null, results);
       }
     });
+  }
+
+  static fetchRestaurantReviewsById(id) {
+    return fetch(`http://localhost:${DBHelper.port()}/reviews/?restaurant_id=${id}`).then(resp => {
+      return resp.json()
+    })
   }
 
   /**

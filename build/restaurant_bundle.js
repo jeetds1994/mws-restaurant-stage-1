@@ -20,6 +20,17 @@ var DBHelper = function () {
   }
 
   _createClass(DBHelper, null, [{
+    key: 'port',
+    value: function port() {
+      return 1337;
+    }
+
+    /**
+     * Database URL.
+     * Change this to restaurants.json file location on your server.
+     */
+
+  }, {
     key: 'openDB',
     value: function openDB(name) {
       return _idb2.default.open(name, 1, function (updated) {
@@ -169,6 +180,13 @@ var DBHelper = function () {
         }
       });
     }
+  }, {
+    key: 'fetchRestaurantReviewsById',
+    value: function fetchRestaurantReviewsById(id) {
+      return fetch('http://localhost:' + DBHelper.port() + '/reviews/?restaurant_id=' + id).then(function (resp) {
+        return resp.json();
+      });
+    }
 
     /**
      * Fetch all neighborhoods with proper error handling.
@@ -257,15 +275,8 @@ var DBHelper = function () {
     }
   }, {
     key: 'DATABASE_URL',
-
-
-    /**
-     * Database URL.
-     * Change this to restaurants.json file location on your server.
-     */
     get: function get() {
-      var port = 1337; // Change this to your server port
-      return 'http://localhost:' + port + '/restaurants';
+      return 'http://localhost:' + DBHelper.port() + '/restaurants';
     }
   }]);
 
@@ -350,8 +361,12 @@ var fetchRestaurantFromURL = function fetchRestaurantFromURL(callback) {
       if (!restaurant) {
         console.error(error);
         return;
+      } else {
+        _dbhelper2.default.fetchRestaurantReviewsById(restaurant.id).then(function (reviews) {
+          restaurant.reviews = reviews;
+          fillRestaurantHTML();
+        });
       }
-      fillRestaurantHTML();
       callback(null, restaurant);
     });
   }
@@ -383,6 +398,32 @@ var fillRestaurantHTML = function fillRestaurantHTML() {
   }
   // fill reviews
   fillReviewsHTML();
+  addReviewEvent();
+};
+
+var addReviewEvent = function addReviewEvent() {
+  var restaurant = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.restaurant;
+
+  document.querySelector('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = document.querySelector(".add-review-form #name").value;
+    var rating = document.querySelector(".add-review-form #rating").value;
+    var comments = document.querySelector(".add-review-form #comments").value;
+    var params = '?restaurant_id=' + restaurant.id + '&name=' + name + '&rating=' + rating + '&comments=' + comments;
+    fetch('http://localhost:1337/reviews/' + params, {
+      method: 'POST'
+    }).then(function (resp) {
+      _dbhelper2.default.fetchRestaurantReviewsById(restaurant.id).then(function (reviews) {
+        var lastReview = reviews[reviews.length - 1];
+        fillRestaurantReview(lastReview);
+      });
+    });
+  });
+};
+
+var fillRestaurantReview = function fillRestaurantReview(review) {
+  var ul = document.getElementById('reviews-list');
+  ul.appendChild(createReviewHTML(review));
 };
 
 /**
@@ -415,9 +456,11 @@ var fillReviewsHTML = function fillReviewsHTML() {
 
   var container = document.getElementById('reviews-container');
   var title = document.createElement('h2');
-  title.innerHTML = 'Reviews';
-  container.appendChild(title);
-
+  if (!document.querySelector("#reviews-title")) {
+    title.innerHTML = 'Reviews';
+    title.id = "reviews-title";
+    container.appendChild(title);
+  }
   if (!reviews) {
     var noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
