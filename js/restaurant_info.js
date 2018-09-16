@@ -1,5 +1,3 @@
-import DBHelper from './dbhelper';
-
 let restaurant;
 var newMap;
 
@@ -32,6 +30,7 @@ var registerServiceWorker = () => {
  */
 
 window.initMap = () => {
+  DBHelper.createDb('reviews')
   fetchRestaurantFromURL((error, restaurant) => {
     if (error) { // Got an error!
       console.error(error);
@@ -69,6 +68,8 @@ var fetchRestaurantFromURL = (callback) => {
         DBHelper.fetchRestaurantReviewsById(restaurant.id).then(reviews => {
           restaurant.reviews = reviews
           fillRestaurantHTML();
+          isRestaurantFavoritedById(id)
+          listenToFavoriteCheckbox()
         })
       }
       callback(null, restaurant)
@@ -120,6 +121,19 @@ var addReviewEvent = (restaurant = self.restaurant) => {
         fillRestaurantReview(lastReview)
       })
     })
+  })
+}
+
+var isRestaurantFavoritedById = (id) => {
+  fetch('http://localhost:1337/restaurants/?is_favorite=true').then(resp => resp.json()).then(data => {
+    let restuarant = data.find(restaurant => restaurant.id == id)
+    document.querySelector("#restaurant-favorite-checkbox").checked = restuarant.is_favorite
+  })
+}
+
+var listenToFavoriteCheckbox = (restaurant = self.restaurant) => {
+  document.querySelector("#restaurant-favorite-checkbox").addEventListener('change', function(e) {
+    DBHelper.updateRestaurantFavoriteStatus(restaurant, e.target.checked)
   })
 }
 

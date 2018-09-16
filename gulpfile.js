@@ -14,7 +14,6 @@ gulp.task('scripts:buildIndex', function (){
     .pipe(gulp.dest('./build'))
 })
 
-
 gulp.task('scripts:buildRestaurants', function () {
   browserify(['js/restaurant_info.js', 'js/dbhelper.js', './sw.js'])
     .transform(babelify.configure({

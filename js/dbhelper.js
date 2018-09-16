@@ -1,5 +1,3 @@
-import idb from 'idb';
-
 /**
  * Common database helper functions.
  */
@@ -17,20 +15,26 @@ class DBHelper {
     return `http://localhost:${DBHelper.port()}/restaurants`;
   }
 
-  static openDB(name) {
-    return idb.open(name ,1 , function (updated) {
-      updated.createObjectStore(name, {keyPath: 'id'})
+  static createDb(name){
+    return idb.open(name, 1, function (updated) {
+      if (!updated.objectStoreNames.contains(name)) {
+        updated.createObjectStore(name, {keyPath: 'id', autoIncrement: true})
+      }
     })
   }
 
-
+  static openDB(name) {
+    return idb.open(name, 1)
+  }
 
   static getCachedMessagesByName(name){
     return DBHelper.openDB(name).then(function(db){
       if (db) {
-        var transaction = db.transaction(name);
-        var store = transaction.objectStore(name);
-        return store.getAll()
+        var transaction = db.transaction(name, 'readwrite');
+        if (transaction) {
+          var store = transaction.objectStore(name);
+          return store.getAll()
+        }
       }}
     );
   }
@@ -49,11 +53,6 @@ class DBHelper {
     xhr.onload = () => {
       if (xhr.status === 200) { // Got a success response from server!
         const restaurantJSON = JSON.parse(xhr.responseText);
-        DBHelper.openDB('restaurants').then(function(db) {
-          let transaction = db.transaction('restaurants', 'readwrite')
-          let store = transaction.objectStore('restaurants')
-          restaurantJSON.forEach(restaurant => store.put(restaurant))
-        })
         callback(null, restaurantJSON);
       } else { // Oops!. Got an error from server.
         const error = (`Request failed. Returned status of ${xhr.status}`);
@@ -135,6 +134,11 @@ class DBHelper {
   }
 
   static fetchRestaurantReviewsById(id) {
+    DBHelper.getCachedMessagesByName('reviews').then(function(cachedData) {
+      if (cachedData.length > 0) {
+        return callback(null, cachedData)
+      }
+    })
     return fetch(`http://localhost:${DBHelper.port()}/reviews/?restaurant_id=${id}`).then(resp => {
       return resp.json()
     })
@@ -203,6 +207,10 @@ class DBHelper {
     );
     return marker;
   }
-}
 
-module.exports = DBHelper
+  static updateRestaurantFavoriteStatus(restaurant, favoriteStatus) {
+    fetch(`http://localhost:1337/restaurants/${restaurant.id}/?is_favorite=${favoriteStatus}`, {
+      method: 'PUT',
+    })
+  }
+}

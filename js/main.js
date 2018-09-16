@@ -1,5 +1,3 @@
-import DBHelper from './dbhelper';
-
 let restaurants,
   neighborhoods,
   cuisines
@@ -35,6 +33,7 @@ var registerServiceWorker = () => {
  * Fetch all neighborhoods and set their HTML.
  */
 var fetchNeighborhoods = () => {
+  DBHelper.createDb('restaurants')
   DBHelper.fetchNeighborhoods((error, neighborhoods) => {
     if (error) { // Got an error
       console.error(error);
