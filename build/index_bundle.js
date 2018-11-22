@@ -256,7 +256,11 @@ var DBHelper = function () {
   }, {
     key: 'imageUrlForRestaurant',
     value: function imageUrlForRestaurant(restaurant) {
-      return '/img/' + restaurant.photograph + '.jpg';
+      if (restaurant.photograph) {
+        return './img/' + restaurant.photograph + '.jpg';
+      } else {
+        return '';
+      }
     }
 
     /**
@@ -266,12 +270,11 @@ var DBHelper = function () {
   }, {
     key: 'mapMarkerForRestaurant',
     value: function mapMarkerForRestaurant(restaurant, map) {
-      var marker = new google.maps.Marker({
-        position: restaurant.latlng,
-        title: restaurant.name,
-        url: DBHelper.urlForRestaurant(restaurant),
-        map: map,
-        animation: google.maps.Animation.DROP });
+      var marker = new L.marker([restaurant.latlng.lat, restaurant.latlng.lng], { title: restaurant.name,
+        alt: restaurant.name,
+        url: DBHelper.urlForRestaurant(restaurant)
+      });
+      marker.addTo(newMap);
       return marker;
     }
   }, {
@@ -305,6 +308,7 @@ var markers = [];
  */
 document.addEventListener('DOMContentLoaded', function (event) {
   registerServiceWorker();
+  initMap();
   fetchNeighborhoods();
   fetchCuisines();
 });
@@ -391,16 +395,32 @@ var fillCuisinesHTML = function fillCuisinesHTML() {
 /**
  * Initialize leaflet map, called from HTML.
  */
-window.initMap = function () {
-  var loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-  self.map = new google.maps.Map(document.getElementById('map'), {
+// window.initMap = () => {
+//   let loc = {
+//     lat: 40.722216,
+//     lng: -73.987501
+//   };
+//   self.map = new google.maps.Map(document.getElementById('map'), {
+//     zoom: 12,
+//     center: loc,
+//     scrollwheel: false
+//   });
+//   updateRestaurants();
+// }
+
+var initMap = function initMap() {
+  self.newMap = L.map('map', {
+    center: [40.722216, -73.987501],
     zoom: 12,
-    center: loc,
-    scrollwheel: false
+    scrollWheelZoom: false
   });
+  L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
+    mapboxToken: 'pk.eyJ1IjoiamVldGRzMTk5NCIsImEiOiJjampld3UzNmwwNHVjM3dvNzQ3MjRtNmR1In0.5Me6ypx2v_XfodhOesUy5A',
+    maxZoom: 18,
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+    id: 'mapbox.streets'
+  }).addTo(newMap);
+
   updateRestaurants();
 };
 
@@ -500,7 +520,7 @@ var addMarkersToMap = function addMarkersToMap() {
   restaurants.forEach(function (restaurant) {
     // Add marker to the map
     var marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
-    google.maps.event.addListener(marker, 'click', function () {
+    marker.on('click', function () {
       window.location.href = marker.url;
     });
     marker.alt = restaurant.name;
@@ -516,12 +536,31 @@ var cacheName = "restaurant-cache";
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(cacheName).then(function (cache) {
-    return cache.addAll(['/', '/index.html', '/restaurant.html', '/build/index_bundle.js', '/build/restaurant_bundle.js', '/js/dbhelper.js']);
+    return cache.addAll(['/', '/index.html', '/restaurant.html', '/build/index_bundle.js', '/js/idb.js', 'img/1.jpg', 'img/2.jpg', 'img/3.jpg', 'img/4.jpg', 'img/5.jpg', 'img/6.jpg', 'img/7.jpg', 'img/8.jpg', 'img/9.jpg', 'img/10.jpg', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css', 'data/restaurants.json', 'css/styles.css', '/build/restaurant_bundle.js', '/js/dbhelper.js']);
   }));
 });
 
 self.addEventListener('activate', function (event) {
   event.waitUntil(caches.delete(cacheName));
+});
+
+self.addEventListener('fetch', function (event) {
+  event.respondWith(caches.match(event.request).then(function (response) {
+    return response || caches.open(cacheName).then(function (cache) {
+      return fetch(event.request).then(function (response) {
+        if (response.status === 404) {
+          console.log("Page not found.");
+          return new Response("Page not found.");
+        }
+        if (event.request.url.includes('restaurant.html')) {
+          cache.put(event.request, response.clone());
+        }
+        return response;
+      });
+    });
+  }).catch(function () {
+    console.log("Offline");
+  }));
 });
 
 self.addEventListener('fetch', function (event) {

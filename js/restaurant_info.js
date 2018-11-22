@@ -3,6 +3,7 @@ var newMap;
 
 document.addEventListener('DOMContentLoaded', (event) => {
   registerServiceWorker()
+  initMap()
 })
 
 
@@ -29,19 +30,25 @@ var registerServiceWorker = () => {
  * Initialize leaflet map
  */
 
-window.initMap = () => {
+var initMap = () => {
   DBHelper.createDb('reviews')
   fetchRestaurantFromURL((error, restaurant) => {
     if (error) { // Got an error!
       console.error(error);
     } else {
-      self.map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 16,
-        center: restaurant.latlng,
-        scrollwheel: false
+      self.newMap = L.map('map', {
+            center: [restaurant.latlng.lat, restaurant.latlng.lng],
+            zoom: 12,
+            scrollWheelZoom: false
       });
+      L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
+        mapboxToken: 'pk.eyJ1IjoiamVldGRzMTk5NCIsImEiOiJjampld3UzNmwwNHVjM3dvNzQ3MjRtNmR1In0.5Me6ypx2v_XfodhOesUy5A',
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+        id: 'mapbox.streets'
+      }).addTo(newMap);
       fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+      DBHelper.mapMarkerForRestaurant(self.restaurant, self.newMap);
     }
   });
 }
@@ -116,18 +123,28 @@ var addReviewEvent = (restaurant = self.restaurant) => {
     fetch('http://localhost:1337/reviews/' + params, {
       method: 'POST',
     }).then(resp => {
-      DBHelper.fetchRestaurantReviewsById(restaurant.id).then(reviews => {
-        let lastReview = reviews[reviews.length - 1]
-        fillRestaurantReview(lastReview)
-      })
+      let retrier = setInterval(function(){
+        DBHelper.fetchRestaurantReviewsById(restaurant.id).then(reviews => {
+          if (restaurant.reviews.length < reviews.length) {
+            let newReviews = reviews.filter(review => {
+              return !restaurant.reviews.find(rr => review.id == rr.id)
+            })
+            newReviews.forEach (review => {
+              fillRestaurantReview(review)
+            })
+            clearInterval(retrier)
+          }
+        })
+     }, 1000);
     })
   })
 }
 
 var isRestaurantFavoritedById = (id) => {
   fetch('http://localhost:1337/restaurants/?is_favorite=true').then(resp => resp.json()).then(data => {
-    let restuarant = data.find(restaurant => restaurant.id == id)
-    document.querySelector("#restaurant-favorite-checkbox").checked = restuarant.is_favorite
+    let restaurant = data.find(restaurant => restaurant.id == id)
+    let checked = restaurant.is_favorite ? restaurant.is_favorite : false
+    document.querySelector("#restaurant-favorite-checkbox").checked = checked
   })
 }
 
@@ -194,10 +211,6 @@ var createReviewHTML = (review) => {
   const name = document.createElement('p');
   name.innerHTML = review.name;
   li.appendChild(name);
-
-  const date = document.createElement('p');
-  date.innerHTML = review.date;
-  li.appendChild(date);
 
   const rating = document.createElement('p');
   rating.innerHTML = `Rating: ${review.rating}`;
