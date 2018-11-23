@@ -12,7 +12,7 @@ var registerServiceWorker = () => {
     console.log('navigator service worker not found');
     return
   } else {
-    console.log('found service worker in naviagtion');
+    console.log('Registering service worker in naviagtion');
   }
 
   navigator.serviceWorker.register('/sw.js').then(function() {
@@ -21,14 +21,6 @@ var registerServiceWorker = () => {
     console.error('failed to register service worker')
   })
 }
-
-/**
- * Initialize map as soon as the page is loaded.
- */
-
-/**
- * Initialize leaflet map
- */
 
 var initMap = () => {
   DBHelper.createDb('reviews')
@@ -120,6 +112,8 @@ var addReviewEvent = (restaurant = self.restaurant) => {
     const rating = document.querySelector(".add-review-form #rating").value
     const comments = document.querySelector(".add-review-form #comments").value
     let params = `?restaurant_id=${restaurant.id}&name=${name}&rating=${rating}&comments=${comments}`
+    showAddReviewForm(false)
+    showPosting(true)
     fetch('http://localhost:1337/reviews/' + params, {
       method: 'POST',
     }).then(resp => {
@@ -130,8 +124,11 @@ var addReviewEvent = (restaurant = self.restaurant) => {
               return !restaurant.reviews.find(rr => review.id == rr.id)
             })
             newReviews.forEach (review => {
+              restaurant.reviews.push(review)
               fillRestaurantReview(review)
             })
+            showAddReviewForm(true)
+            showPosting(false)
             clearInterval(retrier)
           }
         })
@@ -140,11 +137,32 @@ var addReviewEvent = (restaurant = self.restaurant) => {
   })
 }
 
+var showAddReviewForm = (show) => {
+  const newReviewForm = document.querySelector(".add-review-form");
+  if (show) {
+    newReviewForm.style.visibility = 'visible';
+  } else {
+    newReviewForm.style.visibility = 'hidden';
+  }
+}
+
+var showPosting = (show) => {
+  const newReviewForm = document.querySelector(".posting");
+  if (show) {
+    newReviewForm.style.visibility = 'visible';
+  } else {
+    newReviewForm.style.visibility = 'hidden';
+  }
+}
+
 var isRestaurantFavoritedById = (id) => {
   fetch('http://localhost:1337/restaurants/?is_favorite=true').then(resp => resp.json()).then(data => {
     let restaurant = data.find(restaurant => restaurant.id == id)
-    let checked = restaurant.is_favorite ? restaurant.is_favorite : false
-    document.querySelector("#restaurant-favorite-checkbox").checked = checked
+    if (restaurant) {
+      document.querySelector("#restaurant-favorite-checkbox").checked = true
+    } else {
+      document.querySelector("#restaurant-favorite-checkbox").checked = false
+    }
   })
 }
 

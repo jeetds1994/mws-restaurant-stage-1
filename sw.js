@@ -1,4 +1,4 @@
-var cacheName = "restaurant-cache"
+var cacheName = "restaurant-cache-v1"
 
 self.addEventListener('install', function(event) {
   event.waitUntil(
@@ -30,11 +30,15 @@ self.addEventListener('install', function(event) {
   )
 })
 
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
-    caches.delete(cacheName)
-  )
-})
+self.addEventListener('activate', (event) => {
+  event.waitUntil(caches.keys().then((cacheNames) => {
+    return Promise.all(cacheNames.filter((cache) => {
+      return cacheName.startsWith('restaurant-cache') && cache != cacheName;
+    }).map((cache) => {
+      return caches.delete(cache);
+    }));
+  }));
+});
 
 self.addEventListener('fetch', (event) => {
   event.respondWith(caches.match(event.request).then(function(response){
@@ -50,26 +54,8 @@ self.addEventListener('fetch', (event) => {
         return response;
       });
     });
-  }).catch(function() {
-      console.log("Offline")
+  }).catch(function(err) {
+      console.log("Offline SW", err)
   })
   );
 });
-
-
-self.addEventListener('fetch', function (event) {
-  event.respondWith(
-    caches.open(cacheName).then(function (cache) {
-      return cache.match(event.request).then(function (response) {
-        if (response) {
-          return response
-        } else {
-          return fetch(event.request).then(response => {
-            cache.put(event.request, response.clone())
-            return response
-          })
-        }
-      })
-    })
-  )
-})

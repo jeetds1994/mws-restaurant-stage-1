@@ -38,19 +38,18 @@ var DBHelper = function () {
     value: function openDB(name) {
       return idb.open(name, 1);
     }
-  }, {
-    key: 'getCachedMessagesByName',
-    value: function getCachedMessagesByName(name) {
-      return DBHelper.openDB(name).then(function (db) {
-        if (db) {
-          var transaction = db.transaction(name, 'readwrite');
-          if (transaction) {
-            var store = transaction.objectStore(name);
-            return store.getAll();
-          }
-        }
-      });
-    }
+
+    // static getCachedMessagesByName(name){
+    //   return DBHelper.openDB(name).then(function(db){
+    //     if (db) {
+    //       var transaction = db.transaction(name, 'readwrite');
+    //       if (transaction) {
+    //         var store = transaction.objectStore(name);
+    //         return store.getAll()
+    //       }
+    //     }}
+    //   );
+    // }
 
     /**
      * Fetch all restaurants.
@@ -59,25 +58,21 @@ var DBHelper = function () {
   }, {
     key: 'fetchRestaurants',
     value: function fetchRestaurants(callback) {
-      DBHelper.getCachedMessagesByName('restaurants').then(function (cachedData) {
-        if (cachedData.length > 0) {
-          return callback(null, cachedData);
-        }
-      });
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', DBHelper.DATABASE_URL);
-      xhr.onload = function () {
-        if (xhr.status === 200) {
-          // Got a success response from server!
-          var restaurantJSON = JSON.parse(xhr.responseText);
+      // DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
+      //   if (cachedData.length > 0) {
+      //     return callback(null, cachedData)
+      //   }
+      // })
+      fetch(DBHelper.DATABASE_URL).then(function (resp) {
+        return resp.json();
+      }).then(function (restaurantJSON) {
+        if (restaurantJSON) {
           callback(null, restaurantJSON);
         } else {
-          // Oops!. Got an error from server.
-          var error = 'Request failed. Returned status of ' + xhr.status;
+          var error = "Request failed";
           callback(error, null);
         }
-      };
-      xhr.send();
+      });
     }
     /**
      * Fetch a restaurant by its ID.
@@ -179,11 +174,6 @@ var DBHelper = function () {
   }, {
     key: 'fetchRestaurantReviewsById',
     value: function fetchRestaurantReviewsById(id) {
-      DBHelper.getCachedMessagesByName('reviews').then(function (cachedData) {
-        if (cachedData.length > 0) {
-          return callback(null, cachedData);
-        }
-      });
       return fetch('http://localhost:' + DBHelper.port() + '/reviews/?restaurant_id=' + id).then(function (resp) {
         return resp.json();
       });
@@ -318,7 +308,7 @@ var registerServiceWorker = function registerServiceWorker() {
     console.log('navigator service worker not found');
     return;
   } else {
-    console.log('found service worker in naviagtion');
+    console.log('Registering service worker in naviagtion');
   }
 
   navigator.serviceWorker.register('/sw.js').then(function () {
@@ -532,7 +522,7 @@ var addMarkersToMap = function addMarkersToMap() {
 },{}],3:[function(require,module,exports){
 'use strict';
 
-var cacheName = "restaurant-cache";
+var cacheName = "restaurant-cache-v1";
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(cacheName).then(function (cache) {
@@ -541,7 +531,13 @@ self.addEventListener('install', function (event) {
 });
 
 self.addEventListener('activate', function (event) {
-  event.waitUntil(caches.delete(cacheName));
+  event.waitUntil(caches.keys().then(function (cacheNames) {
+    return Promise.all(cacheNames.filter(function (cache) {
+      return cacheName.startsWith('restaurant-cache') && cache != cacheName;
+    }).map(function (cache) {
+      return caches.delete(cache);
+    }));
+  }));
 });
 
 self.addEventListener('fetch', function (event) {
@@ -558,23 +554,8 @@ self.addEventListener('fetch', function (event) {
         return response;
       });
     });
-  }).catch(function () {
-    console.log("Offline");
-  }));
-});
-
-self.addEventListener('fetch', function (event) {
-  event.respondWith(caches.open(cacheName).then(function (cache) {
-    return cache.match(event.request).then(function (response) {
-      if (response) {
-        return response;
-      } else {
-        return fetch(event.request).then(function (response) {
-          cache.put(event.request, response.clone());
-          return response;
-        });
-      }
-    });
+  }).catch(function (err) {
+    console.log("Offline SW", err);
   }));
 });
 

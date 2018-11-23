@@ -20,7 +20,7 @@ var registerServiceWorker = () => {
     console.log('navigator service worker not found');
     return
   } else {
-    console.log('found service worker in naviagtion');
+    console.log('Registering service worker in naviagtion');
   }
 
   navigator.serviceWorker.register('/sw.js').then(function() {

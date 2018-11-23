@@ -27,39 +27,35 @@ class DBHelper {
     return idb.open(name, 1)
   }
 
-  static getCachedMessagesByName(name){
-    return DBHelper.openDB(name).then(function(db){
-      if (db) {
-        var transaction = db.transaction(name, 'readwrite');
-        if (transaction) {
-          var store = transaction.objectStore(name);
-          return store.getAll()
-        }
-      }}
-    );
-  }
+  // static getCachedMessagesByName(name){
+  //   return DBHelper.openDB(name).then(function(db){
+  //     if (db) {
+  //       var transaction = db.transaction(name, 'readwrite');
+  //       if (transaction) {
+  //         var store = transaction.objectStore(name);
+  //         return store.getAll()
+  //       }
+  //     }}
+  //   );
+  // }
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
-    DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
-      if (cachedData.length > 0) {
-        return callback(null, cachedData)
-      }
-    })
-    let xhr = new XMLHttpRequest();
-    xhr.open('GET', DBHelper.DATABASE_URL);
-    xhr.onload = () => {
-      if (xhr.status === 200) { // Got a success response from server!
-        const restaurantJSON = JSON.parse(xhr.responseText);
+    // DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
+    //   if (cachedData.length > 0) {
+    //     return callback(null, cachedData)
+    //   }
+    // })
+    fetch(DBHelper.DATABASE_URL).then(resp => resp.json()).then(restaurantJSON => {
+      if (restaurantJSON) { 
         callback(null, restaurantJSON);
-      } else { // Oops!. Got an error from server.
-        const error = (`Request failed. Returned status of ${xhr.status}`);
+      } else {
+        const error = ("Request failed");
         callback(error, null);
       }
-  };
-    xhr.send();
+    })
   }
   /**
    * Fetch a restaurant by its ID.
@@ -134,11 +130,6 @@ class DBHelper {
   }
 
   static fetchRestaurantReviewsById(id) {
-    DBHelper.getCachedMessagesByName('reviews').then(function(cachedData) {
-      if (cachedData.length > 0) {
-        return callback(null, cachedData)
-      }
-    })
     return fetch(`http://localhost:${DBHelper.port()}/reviews/?restaurant_id=${id}`).then(resp => {
       return resp.json()
     })
