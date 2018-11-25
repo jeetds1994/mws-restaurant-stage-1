@@ -1,62 +1,31 @@
-/**
- * Common database helper functions.
- */
+
 class DBHelper {
 
   static port() {
     return 1337
   }
 
-  /**
-   * Database URL.
-   * Change this to restaurants.json file location on your server.
-   */
   static get DATABASE_URL() {
-    return `http://localhost:${DBHelper.port()}/restaurants`;
+    return `http://localhost:8000/data/restaurants.json`;
   }
 
-  static createDb(name){
-    return idb.open(name, 1, function (updated) {
-      if (!updated.objectStoreNames.contains(name)) {
-        updated.createObjectStore(name, {keyPath: 'id', autoIncrement: true})
-      }
-    })
-  }
+static fetchRestaurants(callback) {
+  let xhr = new XMLHttpRequest();
+  xhr.open('GET', DBHelper.DATABASE_URL);
+  xhr.onload = () => {
+    if (xhr.status === 200) { // Got a success response from server!
+      const json = JSON.parse(xhr.responseText);
+      const restaurants = json.restaurants;
+      callback(null, restaurants);
+    } else { // Oops!. Got an error from server.
+      const error = (`Request failed. Returned status of ${xhr.status}`);
+      callback(error, null);
+    }
+  };
+  xhr.send();
+}
 
-  static openDB(name) {
-    return idb.open(name, 1)
-  }
 
-  // static getCachedMessagesByName(name){
-  //   return DBHelper.openDB(name).then(function(db){
-  //     if (db) {
-  //       var transaction = db.transaction(name, 'readwrite');
-  //       if (transaction) {
-  //         var store = transaction.objectStore(name);
-  //         return store.getAll()
-  //       }
-  //     }}
-  //   );
-  // }
-
-  /**
-   * Fetch all restaurants.
-   */
-  static fetchRestaurants(callback) {
-    // DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
-    //   if (cachedData.length > 0) {
-    //     return callback(null, cachedData)
-    //   }
-    // })
-    fetch(DBHelper.DATABASE_URL).then(resp => resp.json()).then(restaurantJSON => {
-      if (restaurantJSON) { 
-        callback(null, restaurantJSON);
-      } else {
-        const error = ("Request failed");
-        callback(error, null);
-      }
-    })
-  }
   /**
    * Fetch a restaurant by its ID.
    */
@@ -130,9 +99,7 @@ class DBHelper {
   }
 
   static fetchRestaurantReviewsById(id) {
-    return fetch(`http://localhost:${DBHelper.port()}/reviews/?restaurant_id=${id}`).then(resp => {
-      return resp.json()
-    })
+    return fetch(`http://localhost:${DBHelper.port()}/reviews/?restaurant_id=${id}`).then(resp => resp.json())
   }
 
   /**
@@ -182,11 +149,7 @@ class DBHelper {
    * Restaurant image URL.
    */
   static imageUrlForRestaurant(restaurant) {
-    if (restaurant.photograph) {
-      return (`./img/${restaurant.photograph}.jpg`);
-    } else {
-      return ''
-    }
+    return (`./img/${restaurant.photograph}`);
   }
 
   /**

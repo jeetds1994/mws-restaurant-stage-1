@@ -4,11 +4,10 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(cacheName).then(function (cache) {
       return cache.addAll([
-        '/',
-        '/index.html',
-        '/restaurant.html',
-        '/build/index_bundle.js',
-        '/js/idb.js',
+        './',
+        'js/main.js',
+        'js/restaurant_info.js',
+        'js/swController.js',
         'img/1.jpg',
         'img/2.jpg',
         'img/3.jpg',
@@ -23,7 +22,6 @@ self.addEventListener('install', function(event) {
         'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css',
         'data/restaurants.json',
         'css/styles.css',
-        '/build/restaurant_bundle.js',
         '/js/dbhelper.js'
       ])
     })
@@ -31,9 +29,9 @@ self.addEventListener('install', function(event) {
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((cacheNames) => {
+  event.waitUntil(caches.keys().then(function(cacheNames) {
     return Promise.all(cacheNames.filter((cache) => {
-      return cacheName.startsWith('restaurant-cache') && cache != cacheName;
+      return cache.startsWith('restaurant') && cache != cacheName;;
     }).map((cache) => {
       return caches.delete(cache);
     }));
@@ -41,21 +39,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(caches.match(event.request).then(function(response){
+  event.respondWith(caches.match(event.request).then((response) => {
     return response || caches.open(cacheName).then((cache) => {
       return fetch(event.request).then((response) => {
         if (response.status === 404) {
-          console.log("Page not found.");
-          return new Response("Page not found.")
+          return new Response("Response returned 404")
         }
-        if(event.request.url.includes('restaurant.html')){
+        if(event.request.url.includes('restaurant.html') || event.request.url.includes('leaflet')){
           cache.put(event.request, response.clone());
         }
         return response;
       });
     });
-  }).catch(function(err) {
-      console.log("Offline SW", err)
+  }).catch(function() {
+      return new Response("Offline")
   })
   );
 });

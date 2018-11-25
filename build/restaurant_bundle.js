@@ -5,9 +5,6 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-/**
- * Common database helper functions.
- */
 var DBHelper = function () {
   function DBHelper() {
     _classCallCheck(this, DBHelper);
@@ -18,62 +15,26 @@ var DBHelper = function () {
     value: function port() {
       return 1337;
     }
-
-    /**
-     * Database URL.
-     * Change this to restaurants.json file location on your server.
-     */
-
-  }, {
-    key: 'createDb',
-    value: function createDb(name) {
-      return idb.open(name, 1, function (updated) {
-        if (!updated.objectStoreNames.contains(name)) {
-          updated.createObjectStore(name, { keyPath: 'id', autoIncrement: true });
-        }
-      });
-    }
-  }, {
-    key: 'openDB',
-    value: function openDB(name) {
-      return idb.open(name, 1);
-    }
-
-    // static getCachedMessagesByName(name){
-    //   return DBHelper.openDB(name).then(function(db){
-    //     if (db) {
-    //       var transaction = db.transaction(name, 'readwrite');
-    //       if (transaction) {
-    //         var store = transaction.objectStore(name);
-    //         return store.getAll()
-    //       }
-    //     }}
-    //   );
-    // }
-
-    /**
-     * Fetch all restaurants.
-     */
-
   }, {
     key: 'fetchRestaurants',
     value: function fetchRestaurants(callback) {
-      // DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
-      //   if (cachedData.length > 0) {
-      //     return callback(null, cachedData)
-      //   }
-      // })
-      fetch(DBHelper.DATABASE_URL).then(function (resp) {
-        return resp.json();
-      }).then(function (restaurantJSON) {
-        if (restaurantJSON) {
-          callback(null, restaurantJSON);
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', DBHelper.DATABASE_URL);
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          // Got a success response from server!
+          var json = JSON.parse(xhr.responseText);
+          var restaurants = json.restaurants;
+          callback(null, restaurants);
         } else {
-          var error = "Request failed";
+          // Oops!. Got an error from server.
+          var error = 'Request failed. Returned status of ' + xhr.status;
           callback(error, null);
         }
-      });
+      };
+      xhr.send();
     }
+
     /**
      * Fetch a restaurant by its ID.
      */
@@ -246,11 +207,7 @@ var DBHelper = function () {
   }, {
     key: 'imageUrlForRestaurant',
     value: function imageUrlForRestaurant(restaurant) {
-      if (restaurant.photograph) {
-        return './img/' + restaurant.photograph + '.jpg';
-      } else {
-        return '';
-      }
+      return './img/' + restaurant.photograph;
     }
 
     /**
@@ -277,7 +234,7 @@ var DBHelper = function () {
   }, {
     key: 'DATABASE_URL',
     get: function get() {
-      return 'http://localhost:' + DBHelper.port() + '/restaurants';
+      return 'http://localhost:8000/data/restaurants.json';
     }
   }]);
 
@@ -291,27 +248,11 @@ var restaurant = void 0;
 var newMap;
 
 document.addEventListener('DOMContentLoaded', function (event) {
-  registerServiceWorker();
   initMap();
 });
 
-var registerServiceWorker = function registerServiceWorker() {
-  if (!navigator.serviceWorker) {
-    console.log('navigator service worker not found');
-    return;
-  } else {
-    console.log('Registering service worker in naviagtion');
-  }
-
-  navigator.serviceWorker.register('/sw.js').then(function () {
-    console.log('registered service worker');
-  }).catch(function () {
-    console.error('failed to register service worker');
-  });
-};
-
 var initMap = function initMap() {
-  DBHelper.createDb('reviews');
+  //DBHelper.createDb('reviews')
   fetchRestaurantFromURL(function (error, restaurant) {
     if (error) {
       // Got an error!
@@ -374,7 +315,7 @@ var fillRestaurantHTML = function fillRestaurantHTML() {
   var restaurant = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.restaurant;
 
   var name = document.getElementById('restaurant-name');
-  name.innerHTML = restaurant.name;
+  name.innerHTML = restaurant.name + name.innerHTML;
 
   var address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
@@ -405,8 +346,7 @@ var addReviewEvent = function addReviewEvent() {
     var rating = document.querySelector(".add-review-form #rating").value;
     var comments = document.querySelector(".add-review-form #comments").value;
     var params = '?restaurant_id=' + restaurant.id + '&name=' + name + '&rating=' + rating + '&comments=' + comments;
-    showAddReviewForm(false);
-    showPosting(true);
+    reviewFormDisabled(true);
     fetch('http://localhost:1337/reviews/' + params, {
       method: 'POST'
     }).then(function (resp) {
@@ -422,8 +362,7 @@ var addReviewEvent = function addReviewEvent() {
               restaurant.reviews.push(review);
               fillRestaurantReview(review);
             });
-            showAddReviewForm(true);
-            showPosting(false);
+            reviewFormDisabled(false);
             clearInterval(retrier);
           }
         });
@@ -432,21 +371,14 @@ var addReviewEvent = function addReviewEvent() {
   });
 };
 
-var showAddReviewForm = function showAddReviewForm(show) {
-  var newReviewForm = document.querySelector(".add-review-form");
-  if (show) {
-    newReviewForm.style.visibility = 'visible';
+var reviewFormDisabled = function reviewFormDisabled(disabled) {
+  var submitButton = document.querySelector('.add-review-form form input[type="Submit"]');
+  if (disabled) {
+    submitButton.disabled = true;
+    submitButton.value = "Posting....";
   } else {
-    newReviewForm.style.visibility = 'hidden';
-  }
-};
-
-var showPosting = function showPosting(show) {
-  var newReviewForm = document.querySelector(".posting");
-  if (show) {
-    newReviewForm.style.visibility = 'visible';
-  } else {
-    newReviewForm.style.visibility = 'hidden';
+    submitButton.disabled = false;
+    submitButton.value = "Submit";
   }
 };
 
@@ -458,9 +390,9 @@ var isRestaurantFavoritedById = function isRestaurantFavoritedById(id) {
       return restaurant.id == id;
     });
     if (restaurant) {
-      document.querySelector("#restaurant-favorite-checkbox").checked = true;
+      document.querySelector("#restaurant-favorite-checkbox").setAttribute("value", "checked");
     } else {
-      document.querySelector("#restaurant-favorite-checkbox").checked = false;
+      document.querySelector("#restaurant-favorite-checkbox").setAttribute("value", "not-checked");
     }
   });
 };
@@ -468,8 +400,14 @@ var isRestaurantFavoritedById = function isRestaurantFavoritedById(id) {
 var listenToFavoriteCheckbox = function listenToFavoriteCheckbox() {
   var restaurant = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : self.restaurant;
 
-  document.querySelector("#restaurant-favorite-checkbox").addEventListener('change', function (e) {
-    DBHelper.updateRestaurantFavoriteStatus(restaurant, e.target.checked);
+  document.querySelector("#restaurant-favorite-checkbox").addEventListener('click', function (e) {
+    if (e.target.getAttribute("value") == "not-checked") {
+      e.target.setAttribute("value", "checked");
+      DBHelper.updateRestaurantFavoriteStatus(restaurant, true);
+    } else {
+      e.target.setAttribute("value", "not-checked");
+      DBHelper.updateRestaurantFavoriteStatus(restaurant, false);
+    }
   });
 };
 
@@ -578,14 +516,14 @@ var cacheName = "restaurant-cache-v1";
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(cacheName).then(function (cache) {
-    return cache.addAll(['/', '/index.html', '/restaurant.html', '/build/index_bundle.js', '/js/idb.js', 'img/1.jpg', 'img/2.jpg', 'img/3.jpg', 'img/4.jpg', 'img/5.jpg', 'img/6.jpg', 'img/7.jpg', 'img/8.jpg', 'img/9.jpg', 'img/10.jpg', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css', 'data/restaurants.json', 'css/styles.css', '/build/restaurant_bundle.js', '/js/dbhelper.js']);
+    return cache.addAll(['./', 'js/main.js', 'js/restaurant_info.js', 'js/swController.js', 'img/1.jpg', 'img/2.jpg', 'img/3.jpg', 'img/4.jpg', 'img/5.jpg', 'img/6.jpg', 'img/7.jpg', 'img/8.jpg', 'img/9.jpg', 'img/10.jpg', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css', 'data/restaurants.json', 'css/styles.css', '/js/dbhelper.js']);
   }));
 });
 
 self.addEventListener('activate', function (event) {
   event.waitUntil(caches.keys().then(function (cacheNames) {
     return Promise.all(cacheNames.filter(function (cache) {
-      return cacheName.startsWith('restaurant-cache') && cache != cacheName;
+      return cache.startsWith('restaurant') && cache != cacheName;;
     }).map(function (cache) {
       return caches.delete(cache);
     }));
@@ -597,17 +535,16 @@ self.addEventListener('fetch', function (event) {
     return response || caches.open(cacheName).then(function (cache) {
       return fetch(event.request).then(function (response) {
         if (response.status === 404) {
-          console.log("Page not found.");
-          return new Response("Page not found.");
+          return new Response("Response returned 404");
         }
-        if (event.request.url.includes('restaurant.html')) {
+        if (event.request.url.includes('restaurant.html') || event.request.url.includes('leaflet')) {
           cache.put(event.request, response.clone());
         }
         return response;
       });
     });
-  }).catch(function (err) {
-    console.log("Offline SW", err);
+  }).catch(function () {
+    return new Response("Offline");
   }));
 });
 

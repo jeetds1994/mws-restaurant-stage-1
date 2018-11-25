@@ -7,34 +7,18 @@ var markers = []
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
+
 document.addEventListener('DOMContentLoaded', (event) => {
-  registerServiceWorker();
   initMap();
   fetchNeighborhoods();
   fetchCuisines();
 });
 
-
-var registerServiceWorker = () => {
-  if (!navigator.serviceWorker) {
-    console.log('navigator service worker not found');
-    return
-  } else {
-    console.log('Registering service worker in naviagtion');
-  }
-
-  navigator.serviceWorker.register('/sw.js').then(function() {
-    console.log('registered service worker')
-  }).catch(function() {
-    console.error('failed to register service worker')
-  })
-}
-
 /**
  * Fetch all neighborhoods and set their HTML.
  */
 var fetchNeighborhoods = () => {
-  DBHelper.createDb('restaurants')
+  //DBHelper.createDb('restaurants')
   DBHelper.fetchNeighborhoods((error, neighborhoods) => {
     if (error) { // Got an error
       console.error(error);
@@ -154,7 +138,7 @@ var resetRestaurants = (restaurants) => {
 
   // Remove all map markers
   if (self.markers) {
-    self.markers.forEach(marker => marker.setMap(null));
+    self.markers.forEach(marker => marker.remove());
   }
   self.markers = [];
   self.restaurants = restaurants;

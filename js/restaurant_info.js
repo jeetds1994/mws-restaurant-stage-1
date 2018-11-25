@@ -2,28 +2,11 @@ let restaurant;
 var newMap;
 
 document.addEventListener('DOMContentLoaded', (event) => {
-  registerServiceWorker()
   initMap()
 })
 
-
-var registerServiceWorker = () => {
-  if (!navigator.serviceWorker) {
-    console.log('navigator service worker not found');
-    return
-  } else {
-    console.log('Registering service worker in naviagtion');
-  }
-
-  navigator.serviceWorker.register('/sw.js').then(function() {
-    console.log('registered service worker')
-  }).catch(function() {
-    console.error('failed to register service worker')
-  })
-}
-
 var initMap = () => {
-  DBHelper.createDb('reviews')
+  //DBHelper.createDb('reviews')
   fetchRestaurantFromURL((error, restaurant) => {
     if (error) { // Got an error!
       console.error(error);
@@ -83,7 +66,7 @@ var fetchRestaurantFromURL = (callback) => {
  */
 var fillRestaurantHTML = (restaurant = self.restaurant) => {
   const name = document.getElementById('restaurant-name');
-  name.innerHTML = restaurant.name;
+  name.innerHTML = restaurant.name + name.innerHTML;
 
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
@@ -112,8 +95,7 @@ var addReviewEvent = (restaurant = self.restaurant) => {
     const rating = document.querySelector(".add-review-form #rating").value
     const comments = document.querySelector(".add-review-form #comments").value
     let params = `?restaurant_id=${restaurant.id}&name=${name}&rating=${rating}&comments=${comments}`
-    showAddReviewForm(false)
-    showPosting(true)
+    reviewFormDisabled(true)
     fetch('http://localhost:1337/reviews/' + params, {
       method: 'POST',
     }).then(resp => {
@@ -127,8 +109,7 @@ var addReviewEvent = (restaurant = self.restaurant) => {
               restaurant.reviews.push(review)
               fillRestaurantReview(review)
             })
-            showAddReviewForm(true)
-            showPosting(false)
+            reviewFormDisabled(false)
             clearInterval(retrier)
           }
         })
@@ -137,21 +118,14 @@ var addReviewEvent = (restaurant = self.restaurant) => {
   })
 }
 
-var showAddReviewForm = (show) => {
-  const newReviewForm = document.querySelector(".add-review-form");
-  if (show) {
-    newReviewForm.style.visibility = 'visible';
+var reviewFormDisabled = (disabled) => {
+  const submitButton = document.querySelector('.add-review-form form input[type="Submit"]')
+  if (disabled) {
+    submitButton.disabled = true
+    submitButton.value = "Posting...."
   } else {
-    newReviewForm.style.visibility = 'hidden';
-  }
-}
-
-var showPosting = (show) => {
-  const newReviewForm = document.querySelector(".posting");
-  if (show) {
-    newReviewForm.style.visibility = 'visible';
-  } else {
-    newReviewForm.style.visibility = 'hidden';
+    submitButton.disabled = false
+    submitButton.value = "Submit"
   }
 }
 
@@ -159,16 +133,22 @@ var isRestaurantFavoritedById = (id) => {
   fetch('http://localhost:1337/restaurants/?is_favorite=true').then(resp => resp.json()).then(data => {
     let restaurant = data.find(restaurant => restaurant.id == id)
     if (restaurant) {
-      document.querySelector("#restaurant-favorite-checkbox").checked = true
+      document.querySelector("#restaurant-favorite-checkbox").setAttribute("value", "checked")
     } else {
-      document.querySelector("#restaurant-favorite-checkbox").checked = false
+      document.querySelector("#restaurant-favorite-checkbox").setAttribute("value", "not-checked")
     }
   })
 }
 
 var listenToFavoriteCheckbox = (restaurant = self.restaurant) => {
-  document.querySelector("#restaurant-favorite-checkbox").addEventListener('change', function(e) {
-    DBHelper.updateRestaurantFavoriteStatus(restaurant, e.target.checked)
+  document.querySelector("#restaurant-favorite-checkbox").addEventListener('click', function(e) {
+    if (e.target.getAttribute("value") == "not-checked") {
+      e.target.setAttribute("value", "checked")
+      DBHelper.updateRestaurantFavoriteStatus(restaurant, true)
+    } else {
+      e.target.setAttribute("value", "not-checked")
+      DBHelper.updateRestaurantFavoriteStatus(restaurant, false)
+    }
   })
 }
 

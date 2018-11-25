@@ -5,9 +5,6 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-/**
- * Common database helper functions.
- */
 var DBHelper = function () {
   function DBHelper() {
     _classCallCheck(this, DBHelper);
@@ -18,62 +15,26 @@ var DBHelper = function () {
     value: function port() {
       return 1337;
     }
-
-    /**
-     * Database URL.
-     * Change this to restaurants.json file location on your server.
-     */
-
-  }, {
-    key: 'createDb',
-    value: function createDb(name) {
-      return idb.open(name, 1, function (updated) {
-        if (!updated.objectStoreNames.contains(name)) {
-          updated.createObjectStore(name, { keyPath: 'id', autoIncrement: true });
-        }
-      });
-    }
-  }, {
-    key: 'openDB',
-    value: function openDB(name) {
-      return idb.open(name, 1);
-    }
-
-    // static getCachedMessagesByName(name){
-    //   return DBHelper.openDB(name).then(function(db){
-    //     if (db) {
-    //       var transaction = db.transaction(name, 'readwrite');
-    //       if (transaction) {
-    //         var store = transaction.objectStore(name);
-    //         return store.getAll()
-    //       }
-    //     }}
-    //   );
-    // }
-
-    /**
-     * Fetch all restaurants.
-     */
-
   }, {
     key: 'fetchRestaurants',
     value: function fetchRestaurants(callback) {
-      // DBHelper.getCachedMessagesByName('restaurants').then(function(cachedData) {
-      //   if (cachedData.length > 0) {
-      //     return callback(null, cachedData)
-      //   }
-      // })
-      fetch(DBHelper.DATABASE_URL).then(function (resp) {
-        return resp.json();
-      }).then(function (restaurantJSON) {
-        if (restaurantJSON) {
-          callback(null, restaurantJSON);
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', DBHelper.DATABASE_URL);
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          // Got a success response from server!
+          var json = JSON.parse(xhr.responseText);
+          var restaurants = json.restaurants;
+          callback(null, restaurants);
         } else {
-          var error = "Request failed";
+          // Oops!. Got an error from server.
+          var error = 'Request failed. Returned status of ' + xhr.status;
           callback(error, null);
         }
-      });
+      };
+      xhr.send();
     }
+
     /**
      * Fetch a restaurant by its ID.
      */
@@ -246,11 +207,7 @@ var DBHelper = function () {
   }, {
     key: 'imageUrlForRestaurant',
     value: function imageUrlForRestaurant(restaurant) {
-      if (restaurant.photograph) {
-        return './img/' + restaurant.photograph + '.jpg';
-      } else {
-        return '';
-      }
+      return './img/' + restaurant.photograph;
     }
 
     /**
@@ -277,7 +234,7 @@ var DBHelper = function () {
   }, {
     key: 'DATABASE_URL',
     get: function get() {
-      return 'http://localhost:' + DBHelper.port() + '/restaurants';
+      return 'http://localhost:8000/data/restaurants.json';
     }
   }]);
 
@@ -296,33 +253,18 @@ var markers = [];
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
+
 document.addEventListener('DOMContentLoaded', function (event) {
-  registerServiceWorker();
   initMap();
   fetchNeighborhoods();
   fetchCuisines();
 });
 
-var registerServiceWorker = function registerServiceWorker() {
-  if (!navigator.serviceWorker) {
-    console.log('navigator service worker not found');
-    return;
-  } else {
-    console.log('Registering service worker in naviagtion');
-  }
-
-  navigator.serviceWorker.register('/sw.js').then(function () {
-    console.log('registered service worker');
-  }).catch(function () {
-    console.error('failed to register service worker');
-  });
-};
-
 /**
  * Fetch all neighborhoods and set their HTML.
  */
 var fetchNeighborhoods = function fetchNeighborhoods() {
-  DBHelper.createDb('restaurants');
+  //DBHelper.createDb('restaurants')
   DBHelper.fetchNeighborhoods(function (error, neighborhoods) {
     if (error) {
       // Got an error
@@ -449,7 +391,7 @@ var resetRestaurants = function resetRestaurants(restaurants) {
   // Remove all map markers
   if (self.markers) {
     self.markers.forEach(function (marker) {
-      return marker.setMap(null);
+      return marker.remove();
     });
   }
   self.markers = [];
@@ -526,14 +468,14 @@ var cacheName = "restaurant-cache-v1";
 
 self.addEventListener('install', function (event) {
   event.waitUntil(caches.open(cacheName).then(function (cache) {
-    return cache.addAll(['/', '/index.html', '/restaurant.html', '/build/index_bundle.js', '/js/idb.js', 'img/1.jpg', 'img/2.jpg', 'img/3.jpg', 'img/4.jpg', 'img/5.jpg', 'img/6.jpg', 'img/7.jpg', 'img/8.jpg', 'img/9.jpg', 'img/10.jpg', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css', 'data/restaurants.json', 'css/styles.css', '/build/restaurant_bundle.js', '/js/dbhelper.js']);
+    return cache.addAll(['./', 'js/main.js', 'js/restaurant_info.js', 'js/swController.js', 'img/1.jpg', 'img/2.jpg', 'img/3.jpg', 'img/4.jpg', 'img/5.jpg', 'img/6.jpg', 'img/7.jpg', 'img/8.jpg', 'img/9.jpg', 'img/10.jpg', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.js', 'https://unpkg.com/leaflet@1.3.1/dist/leaflet.css', 'data/restaurants.json', 'css/styles.css', '/js/dbhelper.js']);
   }));
 });
 
 self.addEventListener('activate', function (event) {
   event.waitUntil(caches.keys().then(function (cacheNames) {
     return Promise.all(cacheNames.filter(function (cache) {
-      return cacheName.startsWith('restaurant-cache') && cache != cacheName;
+      return cache.startsWith('restaurant') && cache != cacheName;;
     }).map(function (cache) {
       return caches.delete(cache);
     }));
@@ -545,17 +487,16 @@ self.addEventListener('fetch', function (event) {
     return response || caches.open(cacheName).then(function (cache) {
       return fetch(event.request).then(function (response) {
         if (response.status === 404) {
-          console.log("Page not found.");
-          return new Response("Page not found.");
+          return new Response("Response returned 404");
         }
-        if (event.request.url.includes('restaurant.html')) {
+        if (event.request.url.includes('restaurant.html') || event.request.url.includes('leaflet')) {
           cache.put(event.request, response.clone());
         }
         return response;
       });
     });
-  }).catch(function (err) {
-    console.log("Offline SW", err);
+  }).catch(function () {
+    return new Response("Offline");
   }));
 });
 
